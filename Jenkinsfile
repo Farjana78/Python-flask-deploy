@@ -3,6 +3,7 @@ pipeline {
   
   environment {
     IMAGE_NAME = 'farjana078/python-flask'
+    VENV = 'venv'
   }
   
   stages {
@@ -15,6 +16,26 @@ pipeline {
     stage('Build docker image') {
       steps {
         sh "docker build -t ${IMAGE_NAME}:latest ."
+      }
+    }
+
+    stage('Set up the venv') {
+      steps {
+        sh '''
+          python3 -m venv $VENV
+          source $VENV/bin/activate
+          pip install --upgrade pip
+          pip install -r requirements.txt
+        '''
+      }
+    }
+
+    stage('Run the tests') {
+      steps {
+        sh '''
+          source $VENV/bin/activate
+          python -m unittest discover -s tests
+        '''
       }
     }
     
