@@ -1,21 +1,28 @@
 pipeline {
   agent any
-  
   environment {
-    IMAGE_NAME = 'farjana078/python-flask'
     VENV = 'venv'
   }
-  
   stages {
+
     stage('Checkout git') {
       steps {
         git branch: 'main', url: 'https://github.com/Farjana78/Python-flask-deploy.git'
       }
     }
-    
+
     stage('Build docker image') {
       steps {
-        sh "docker build -t ${IMAGE_NAME}:latest ."
+        sh 'docker build -t farjana078/python-flask:latest .'
+      }
+    }
+
+    stage('Install Python tools') {
+      steps {
+        sh '''
+          sudo apt-get update
+          sudo apt-get install -y python3-venv python3-pip
+        '''
       }
     }
 
@@ -38,17 +45,20 @@ pipeline {
         '''
       }
     }
-    
+
     stage('Push to Dockerhub') {
+      when {
+        branch 'main'
+      }
       steps {
-        withCredentials([usernamePassword(credentialsId: 'docker', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-          sh """
-            echo ${DOCKER_PASS} | docker login -u ${DOCKER_USER} --password-stdin
-            docker push ${IMAGE_NAME}:latest
-            docker logout
-          """
+        withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+          sh '''
+            echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+            docker push farjana078/python-flask:latest
+          '''
         }
       }
     }
+
   }
 }
